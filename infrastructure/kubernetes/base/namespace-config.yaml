@@ -1,0 +1,61 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iimp
+  labels:
+    app.kubernetes.io/managed-by: kubectl
+    environment: production
+
+---
+# PostgreSQL Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: iimp
+type: Opaque
+stringData:
+  POSTGRES_USER: iimp
+  POSTGRES_PASSWORD: iimp_secret_prod_change_me
+  DATABASE_URL: jdbc:postgresql://postgres-service:5432/iimp_incidents
+
+---
+# JWT Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jwt-secret
+  namespace: iimp
+type: Opaque
+stringData:
+  JWT_SECRET: "iimp-production-jwt-secret-minimum-256-bits-CHANGE_THIS"
+
+---
+# OpenAI Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai-secret
+  namespace: iimp
+type: Opaque
+stringData:
+  OPENAI_API_KEY: "sk-REPLACE_WITH_REAL_KEY"
+
+---
+# Common ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iimp-config
+  namespace: iimp
+data:
+  KAFKA_BROKERS: "kafka-service:9092"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "iimp_incidents"
+  OTEL_ENDPOINT: "http://otel-collector-service:4317"
+  SPRING_PROFILES_ACTIVE: "production"

@@ -1,0 +1,360 @@
+version: '3.9'
+
+# ============================================================
+# Intelligent Incident Management Platform — Docker Compose
+# ============================================================
+
+x-common-env: &common-env
+  KAFKA_BROKERS: kafka:29092
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USER: iimp
+  DB_PASS: iimp_secret
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  JWT_SECRET: iimp-very-long-secret-key-minimum-256-bits-required-here-please-change
+  OTEL_ENDPOINT: http://otel-collector:4317
+  SPRING_PROFILES_ACTIVE: docker
+
+services:
+
+  # ──────────────────────────────────────────────
+  # INFRASTRUCTURE
+  # ──────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: iimp-postgres
+    environment:
+      POSTGRES_DB: iimp_incidents
+      POSTGRES_USER: iimp
+      POSTGRES_PASSWORD: iimp_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iimp -d iimp_incidents"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: iimp-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: iimp-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: iimp-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:29092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: iimp-kafka-ui
+    ports:
+      - "8888:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: iimp-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      - kafka
+
+  # ──────────────────────────────────────────────
+  # OBSERVABILITY
+  # ──────────────────────────────────────────────
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.99.0
+    container_name: iimp-otel-collector
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./infrastructure/otel/otel-collector-config.yaml:/etc/otel/config.yaml
+    ports:
+      - "4317:4317"   # gRPC
+      - "4318:4318"   # HTTP
+      - "8889:8889"   # Prometheus metrics
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: iimp-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: iimp-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # ──────────────────────────────────────────────
+  # BACKEND SERVICES
+  # ──────────────────────────────────────────────
+
+  user-service:
+    build:
+      context: ./backend
+      dockerfile: user-service/Dockerfile
+    container_name: iimp-user-service
+    ports:
+      - "8090:8090"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_users
+      SERVER_PORT: 8090
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  incident-management-service:
+    build:
+      context: ./backend
+      dockerfile: incident-management-service/Dockerfile
+    container_name: iimp-incident-service
+    ports:
+      - "8081:8081"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_incidents
+      SERVER_PORT: 8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  log-analyzer-service:
+    build:
+      context: ./backend
+      dockerfile: log-analyzer-service/Dockerfile
+    container_name: iimp-log-analyzer
+    ports:
+      - "8082:8082"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_incidents
+      SERVER_PORT: 8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  deployment-tracker-service:
+    build:
+      context: ./backend
+      dockerfile: deployment-tracker-service/Dockerfile
+    container_name: iimp-deployment-tracker
+    ports:
+      - "8083:8083"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_incidents
+      SERVER_PORT: 8083
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  service-health-analyzer:
+    build:
+      context: ./backend
+      dockerfile: service-health-analyzer/Dockerfile
+    container_name: iimp-health-analyzer
+    ports:
+      - "8084:8084"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_incidents
+      SERVER_PORT: 8084
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  alert-correlation-service:
+    build:
+      context: ./backend
+      dockerfile: alert-correlation-service/Dockerfile
+    container_name: iimp-alert-correlation
+    ports:
+      - "8085:8085"
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8085
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ai-rca-service:
+    build:
+      context: ./backend
+      dockerfile: ai-rca-service/Dockerfile
+    container_name: iimp-ai-rca
+    ports:
+      - "8086:8086"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_incidents
+      SERVER_PORT: 8086
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: iimp-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      <<: *common-env
+      USER_SERVICE_HOST: user-service
+      INCIDENT_SERVICE_HOST: incident-management-service
+      RCA_SERVICE_HOST: ai-rca-service
+      HEALTH_SERVICE_HOST: service-health-analyzer
+      DEPLOYMENT_SERVICE_HOST: deployment-tracker-service
+    depends_on:
+      - user-service
+      - incident-management-service
+      - ai-rca-service
+      - redis
+
+  # ──────────────────────────────────────────────
+  # FRONTEND
+  # ──────────────────────────────────────────────
+
+  order-service:
+    build:
+      context: ./backend
+      dockerfile: order-service/Dockerfile
+    container_name: iimp-order-service
+    ports:
+      - "8091:8091"
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8091
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  payment-service:
+    build:
+      context: ./backend
+      dockerfile: payment-service/Dockerfile
+    container_name: iimp-payment-service
+    ports:
+      - "8092:8092"
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  inventory-service:
+    build:
+      context: ./backend
+      dockerfile: inventory-service/Dockerfile
+    container_name: iimp-inventory-service
+    ports:
+      - "8093:8093"
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8093
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iimp-frontend
+    ports:
+      - "3000:80"
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:8080
+    depends_on:
+      - api-gateway
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: iimp-network
+    driver: bridge

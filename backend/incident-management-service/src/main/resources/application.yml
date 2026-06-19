@@ -1,0 +1,98 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: incident-management-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:iimp_incidents}
+    username: ${DB_USER:iimp}
+    password: ${DB_PASS:iimp_secret}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: incident-management-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.iimp.common.event"
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASS:}
+      timeout: 5000ms
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+iimp:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:iimp-very-long-secret-key-minimum-256-bits-required-here-please-change}
+      expiration-ms: 86400000
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_ENDPOINT:http://localhost:4317}
+  service:
+    name: incident-management-service
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} traceId=%X{traceId} spanId=%X{spanId} - %msg%n"
+  level:
+    com.iimp: DEBUG
+    org.springframework.kafka: INFO

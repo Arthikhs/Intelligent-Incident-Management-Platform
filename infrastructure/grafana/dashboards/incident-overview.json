@@ -1,0 +1,103 @@
+{
+  "title": "IIMP — Incident Overview",
+  "uid": "iimp-incident-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Active Incidents",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(incidents_active_total)",
+          "legendFormat": "Active"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 5 },
+            { "color": "red", "value": 10 }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Critical Incidents",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(incidents_created_total{severity=\"CRITICAL\"})",
+          "legendFormat": "Critical"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg MTTR (hours)",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "avg(incidents_mttr_seconds) / 3600",
+          "legendFormat": "MTTR"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Alerts Deduplicated",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(alerts_deduplicated_total)",
+          "legendFormat": "Deduplicated"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Incident Rate Over Time",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(incidents_created_total[5m])",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Incidents by Service",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (service) (incidents_created_total)",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Incidents by Severity",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (severity) (incidents_created_total)",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    }
+  ]
+}
