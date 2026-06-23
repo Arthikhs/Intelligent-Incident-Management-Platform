@@ -282,6 +282,20 @@ services:
       RCA_SERVICE_HOST: ai-rca-service
       HEALTH_SERVICE_HOST: service-health-analyzer
       DEPLOYMENT_SERVICE_HOST: deployment-tracker-service
+      ANOMALY_SERVICE_HOST: anomaly-detection-service
+      BLAST_SERVICE_HOST: blast-radius-analyzer
+      NOTIFICATION_SERVICE_HOST: notification-service
+      SLO_SERVICE_HOST: slo-service
+      POSTMORTEM_SERVICE_HOST: postmortem-service
+      KB_SERVICE_HOST: knowledge-base-service
+      COPILOT_SERVICE_HOST: ai-copilot-service
+      ANOMALY_SERVICE_HOST: anomaly-detection-service
+      BLAST_SERVICE_HOST: blast-radius-analyzer
+      NOTIFICATION_SERVICE_HOST: notification-service
+      SLO_SERVICE_HOST: slo-service
+      POSTMORTEM_SERVICE_HOST: postmortem-service
+      KB_SERVICE_HOST: knowledge-base-service
+      COPILOT_SERVICE_HOST: ai-copilot-service
     depends_on:
       - user-service
       - incident-management-service
@@ -332,6 +346,135 @@ services:
       SERVER_PORT: 8093
     depends_on:
       kafka:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: notification-service/Dockerfile
+    container_name: iimp-notification
+    ports:
+      - "8094:8094"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_notifications
+      SERVER_PORT: 8094
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      DEFAULT_RECIPIENT: ${DEFAULT_RECIPIENT:-ops-team@iimp.io}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  anomaly-detection-service:
+    build:
+      context: ./backend
+      dockerfile: anomaly-detection-service/Dockerfile
+    container_name: iimp-anomaly-detection
+    ports:
+      - "8088:8088"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_anomaly
+      SERVER_PORT: 8088
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  blast-radius-analyzer:
+    build:
+      context: ./backend
+      dockerfile: blast-radius-analyzer/Dockerfile
+    container_name: iimp-blast-radius
+    ports:
+      - "8087:8087"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_blast
+      SERVER_PORT: 8087
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  slo-service:
+    build:
+      context: ./backend
+      dockerfile: slo-service/Dockerfile
+    container_name: iimp-slo
+    ports:
+      - "8096:8096"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_slo
+      SERVER_PORT: 8096
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postmortem-service:
+    build:
+      context: ./backend
+      dockerfile: postmortem-service/Dockerfile
+    container_name: iimp-postmortem
+    ports:
+      - "8097:8097"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_postmortem
+      SERVER_PORT: 8097
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  knowledge-base-service:
+    build:
+      context: ./backend
+      dockerfile: knowledge-base-service/Dockerfile
+    container_name: iimp-knowledge-base
+    ports:
+      - "8095:8095"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_kb
+      SERVER_PORT: 8095
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ai-copilot-service:
+    build:
+      context: ./backend
+      dockerfile: ai-copilot-service/Dockerfile
+    container_name: iimp-ai-copilot
+    ports:
+      - "8098:8098"
+    environment:
+      <<: *common-env
+      DB_NAME: iimp_copilot
+      SERVER_PORT: 8098
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   frontend:

@@ -46,6 +46,56 @@ scrape_configs:
     static_configs:
       - targets: ['api-gateway:8080']
 
+  - job_name: 'anomaly-detection-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['anomaly-detection-service:8088']
+
+  - job_name: 'blast-radius-analyzer'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['blast-radius-analyzer:8087']
+
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification-service:8094']
+
+  - job_name: 'slo-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['slo-service:8096']
+
+  - job_name: 'postmortem-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['postmortem-service:8097']
+
+  - job_name: 'knowledge-base-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['knowledge-base-service:8095']
+
+  - job_name: 'ai-copilot-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ai-copilot-service:8098']
+
+  - job_name: 'order-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['order-service:8091']
+
+  - job_name: 'payment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['payment-service:8092']
+
+  - job_name: 'inventory-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['inventory-service:8093']
+
   - job_name: 'otel-collector'
     static_configs:
       - targets: ['otel-collector:8889']

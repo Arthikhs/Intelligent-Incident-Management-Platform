@@ -43,6 +43,7 @@ public class IncidentService {
     private final MeterRegistry meterRegistry;
 
     @Transactional
+    @CacheEvict(value = "dashboard-summary", allEntries = true)
     public IncidentResponse createIncident(CreateIncidentRequest request, UUID createdBy) {
         Incident incident = Incident.builder()
             .title(request.getTitle())
@@ -81,7 +82,7 @@ public class IncidentService {
     }
 
     @Transactional
-    @CacheEvict(value = "incidents", key = "#id")
+    @CacheEvict(value = {"incidents", "dashboard-summary"}, key = "#id")
     public IncidentResponse acknowledge(UUID id, UUID userId) {
         Incident incident = findOrThrow(id);
         incident.acknowledge();
@@ -93,7 +94,7 @@ public class IncidentService {
     }
 
     @Transactional
-    @CacheEvict(value = "incidents", key = "#id")
+    @CacheEvict(value = {"incidents", "dashboard-summary"}, key = "#id")
     public IncidentResponse resolve(UUID id, UUID userId) {
         Incident incident = findOrThrow(id);
         incident.resolve();
@@ -111,7 +112,7 @@ public class IncidentService {
     }
 
     @Transactional
-    @CacheEvict(value = "incidents", key = "#id")
+    @CacheEvict(value = {"incidents", "dashboard-summary"}, key = "#id")
     public IncidentResponse close(UUID id) {
         Incident incident = findOrThrow(id);
         incident.close();

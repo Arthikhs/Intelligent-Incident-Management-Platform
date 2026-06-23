@@ -1,7 +1,6 @@
 package com.iimp.gateway.filter;
 
 import com.iimp.common.security.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -13,14 +12,13 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Config> {
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    public JwtAuthFilter() {
+    public JwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
         super(Config.class);
-        this.jwtTokenProvider = null;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Override
@@ -33,7 +31,7 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
             }
 
             String token = authHeader.substring(7);
-            if (jwtTokenProvider == null || !jwtTokenProvider.validateToken(token)) {
+            if (!jwtTokenProvider.validateToken(token)) {
                 return unauthorized(exchange);
             }
 

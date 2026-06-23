@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 
@@ -109,7 +110,7 @@ public class LogAnalyzerService {
     private String buildFingerprint(LogEvent event) {
         String base = event.getServiceName() + ":" + event.getLevel() + ":" +
             (event.getExceptionClass() != null ? event.getExceptionClass() : event.getMessage().substring(0, Math.min(50, event.getMessage().length())));
-        return UUID.nameUUIDFromBytes(base.getBytes()).toString().replace("-", "");
+        return UUID.nameUUIDFromBytes(base.getBytes(StandardCharsets.UTF_8)).toString().replace("-", "");
     }
 
     private String truncate(String s, int max) {

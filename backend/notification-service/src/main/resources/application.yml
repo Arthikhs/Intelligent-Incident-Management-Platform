@@ -1,0 +1,35 @@
+server:
+  port: 8094
+
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/iimp_notifications
+    username: ${DB_USER:iimp}
+    password: ${DB_PASS:iimp_secret}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASS:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+notification:
+  default-recipient: ${DEFAULT_RECIPIENT:ops-team@iimp.io}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

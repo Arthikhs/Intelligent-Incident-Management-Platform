@@ -15,6 +15,13 @@ COPY incident-management-service ./incident-management-service
 COPY service-health-analyzer ./service-health-analyzer
 COPY ai-rca-service ./ai-rca-service
 COPY api-gateway ./api-gateway
+COPY notification-service ./notification-service
+COPY anomaly-detection-service ./anomaly-detection-service
+COPY blast-radius-analyzer ./blast-radius-analyzer
+COPY slo-service ./slo-service
+COPY postmortem-service ./postmortem-service
+COPY knowledge-base-service ./knowledge-base-service
+COPY ai-copilot-service ./ai-copilot-service
 
 RUN mvn -B -DskipTests -q -pl common-lib install && \
     mvn -B -DskipTests -q -pl deployment-tracker-service package

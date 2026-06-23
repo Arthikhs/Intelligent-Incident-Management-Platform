@@ -1,0 +1,26 @@
+server:
+  port: 8095
+
+spring:
+  application:
+    name: knowledge-base-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/iimp_kb
+    username: ${DB_USER:iimp}
+    password: ${DB_PASS:iimp_secret}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

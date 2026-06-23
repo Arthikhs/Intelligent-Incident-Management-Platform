@@ -33,15 +33,22 @@ docker compose ps
 
 ### 4. Access the Platform
 
-| Service          | URL                          |
-|------------------|------------------------------|
-| Frontend UI      | http://localhost:3000        |
-| API Gateway      | http://localhost:8080        |
-| Swagger (IMS)    | http://localhost:8081/swagger-ui.html |
-| Swagger (RCA)    | http://localhost:8086/swagger-ui.html |
-| Grafana          | http://localhost:3001 (admin/admin) |
-| Kafka UI         | http://localhost:8888        |
-| Prometheus       | http://localhost:9090        |
+| Service                  | URL                                             |
+|--------------------------|-------------------------------------------------|
+| Frontend UI              | http://localhost:3000                           |
+| API Gateway              | http://localhost:8080                           |
+| Swagger (IMS)            | http://localhost:8081/swagger-ui.html           |
+| Swagger (RCA)            | http://localhost:8086/swagger-ui.html           |
+| Swagger (Anomaly)        | http://localhost:8088/swagger-ui.html           |
+| Swagger (Blast Radius)   | http://localhost:8087/swagger-ui.html           |
+| Swagger (Notifications)  | http://localhost:8094/swagger-ui.html           |
+| Swagger (SLO)            | http://localhost:8096/swagger-ui.html           |
+| Swagger (Postmortem)     | http://localhost:8097/swagger-ui.html           |
+| Swagger (Knowledge Base) | http://localhost:8095/swagger-ui.html           |
+| Swagger (AI Copilot)     | http://localhost:8098/swagger-ui.html           |
+| Grafana                  | http://localhost:3001 (admin/admin)             |
+| Kafka UI                 | http://localhost:8888                           |
+| Prometheus               | http://localhost:9090                           |
 
 ### 5. Create Admin User
 ```bash
@@ -136,6 +143,58 @@ GET /api/v1/health
 GET /api/v1/health/{serviceName}
 ```
 
+### Anomaly Detection
+```bash
+GET  /api/v1/anomalies/{serviceName}
+POST /api/v1/anomalies/detect/error-rate
+POST /api/v1/anomalies/detect/latency
+```
+
+### Blast Radius
+```bash
+POST /api/v1/blast-radius/analyze
+GET  /api/v1/blast-radius/incidents/{incidentId}
+```
+
+### Notifications
+```bash
+GET  /api/v1/notifications/incidents/{incidentId}
+POST /api/v1/notifications/send
+```
+
+### SLO / Error Budget
+```bash
+GET  /api/v1/slos
+GET  /api/v1/slos/{serviceName}
+GET  /api/v1/slos/breached
+POST /api/v1/slos
+POST /api/v1/slos/{serviceName}/downtime
+```
+
+### Postmortems
+```bash
+GET  /api/v1/postmortems
+GET  /api/v1/postmortems/incidents/{incidentId}
+POST /api/v1/postmortems/generate
+POST /api/v1/postmortems/{id}/publish
+```
+
+### Knowledge Base
+```bash
+GET  /api/v1/kb/search?q={query}
+GET  /api/v1/kb/services/{serviceName}
+GET  /api/v1/kb/category/{category}
+GET  /api/v1/kb/{id}
+POST /api/v1/kb
+POST /api/v1/kb/runbook/generate
+```
+
+### AI SRE Copilot
+```bash
+POST /api/v1/copilot/chat
+GET  /api/v1/copilot/history/{sessionId}
+```
+
 ---
 
 ## Technology Stack
@@ -170,6 +229,13 @@ GET /api/v1/health/{serviceName}
 │   ├── service-health-analyzer/    # Health score computation
 │   ├── user-service/               # JWT auth + RBAC
 │   ├── api-gateway/                # Spring Cloud Gateway
+│   ├── anomaly-detection-service/  # Z-score + EWMA anomaly detection
+│   ├── blast-radius-analyzer/      # Incident propagation impact analysis
+│   ├── notification-service/       # Email/webhook alert delivery
+│   ├── slo-service/                # SLO tracking + error budget management
+│   ├── postmortem-service/         # AI-generated blameless postmortems
+│   ├── knowledge-base-service/     # Runbooks, RCA articles + AI search
+│   ├── ai-copilot-service/         # GPT-4o SRE chat copilot
 │   ├── order-service/              # Domain service (signal generator)
 │   ├── payment-service/            # Domain service (signal generator)
 │   └── inventory-service/          # Domain service (signal generator)

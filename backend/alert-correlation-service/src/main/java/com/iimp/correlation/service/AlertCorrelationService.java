@@ -27,18 +27,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AlertCorrelationService {
 
     private static final Duration CORRELATION_WINDOW = Duration.ofMinutes(5);
-    private static final int CLUSTER_THRESHOLD = 3;  // alerts needed to create incident
+    private static final int CLUSTER_THRESHOLD = 3;
     private static final String CLUSTER_CACHE_PREFIX = "alert:cluster:";
+    private static final int MAX_CLUSTER_ENTRIES = 1000;
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final MeterRegistry meterRegistry;
 
-    // In-memory cluster map (also backed by Redis for distributed scenario)
     private final Map<String, AlertCluster> activeClusters = new ConcurrentHashMap<>();
 
     public void processAlert(AlertEvent alert) {
-        // Step 1: Deduplication by fingerprint
+        evictExpiredClusters();
+
         if (isDuplicate(alert)) {
             log.debug("Duplicate alert suppressed: fingerprint={}", alert.getFingerprint());
             meterRegistry.counter("alerts.deduplicated").increment();
@@ -81,6 +82,11 @@ public class AlertCorrelationService {
         }
 
         meterRegistry.gauge("alerts.cluster.size", cluster.getAlerts().size());
+    }
+
+    private void evictExpiredClusters() {
+        Instant cutoff = Instant.now().minus(CORRELATION_WINDOW);
+        activeClusters.entrySet().removeIf(e -> e.getValue().getWindowStart().isBefore(cutoff));
     }
 
     private boolean isDuplicate(AlertEvent alert) {

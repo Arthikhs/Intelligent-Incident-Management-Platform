@@ -25,17 +25,13 @@ exporters:
     namespace: iimp
   logging:
     loglevel: info
-  otlp/jaeger:
-    endpoint: jaeger:4317
-    tls:
-      insecure: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp/jaeger, logging]
+      exporters: [logging]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]

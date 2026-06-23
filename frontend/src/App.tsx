@@ -1,8 +1,9 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { Box, TextField, Button, Typography, Paper } from '@mui/material';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { IncidentsPage } from './features/incidents/IncidentsPage';
@@ -11,6 +12,7 @@ import { HealthPage } from './features/health/HealthPage';
 import { DeploymentsPage } from './features/deployments/DeploymentsPage';
 import { AlertsPage } from './features/alerts/AlertsPage';
 import { useAuthStore } from './store/authStore';
+import { authApi } from './api';
 
 const darkTheme = createTheme({
   palette: {
@@ -33,34 +35,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
-
-export const App: React.FC = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={darkTheme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route index element={<DashboardPage />} />
-            <Route path="incidents" element={<IncidentsPage />} />
-            <Route path="rca" element={<RcaPage />} />
-            <Route path="health" element={<HealthPage />} />
-            <Route path="deployments" element={<DeploymentsPage />} />
-            <Route path="alerts" element={<AlertsPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </ThemeProvider>
-    <ReactQueryDevtools initialIsOpen={false} />
-  </QueryClientProvider>
-);
-
-// Inline login page to keep file count manageable
-import { useState } from 'react';
-import { Box, TextField, Button, Typography, Paper } from '@mui/material';
-import { authApi } from './api';
-import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -99,5 +73,27 @@ const LoginPage: React.FC = () => {
     </Box>
   );
 };
+
+export const App: React.FC = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route index element={<DashboardPage />} />
+            <Route path="incidents" element={<IncidentsPage />} />
+            <Route path="rca" element={<RcaPage />} />
+            <Route path="health" element={<HealthPage />} />
+            <Route path="deployments" element={<DeploymentsPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+    {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+  </QueryClientProvider>
+);
 
 export default App;

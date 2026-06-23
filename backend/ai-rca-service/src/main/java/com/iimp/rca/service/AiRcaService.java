@@ -113,14 +113,14 @@ public class AiRcaService {
             String promptContent = promptBuilderService.buildRcaPrompt(context, RCA_PROMPT_TEMPLATE);
             Prompt prompt = new Prompt(promptContent,
                 OpenAiChatOptions.builder()
-                    .withModel("gpt-4o")
-                    .withTemperature(0.2f)
-                    .withMaxTokens(4096)
+                    .model("gpt-4o")
+                    .temperature(0.2)
+                    .maxTokens(4096)
                     .build()
             );
 
             ChatResponse chatResponse = chatClient.prompt(prompt).call().chatResponse();
-            String rawJson = chatResponse.getResult().getOutput().getContent();
+            String rawJson = chatResponse.getResult().getOutput().getText();
 
             RcaParseResult parsed = parseRcaResponse(rawJson);
             Usage usage = chatResponse.getMetadata().getUsage();
@@ -133,8 +133,8 @@ public class AiRcaService {
             report.setRecoveryActions(parsed.recoveryActions());
             report.setPreventionRecs(parsed.preventionRecs());
             report.setConfidenceScore(BigDecimal.valueOf(parsed.confidenceScore()));
-            report.setPromptTokens((int) usage.getPromptTokens());
-            report.setCompletionTokens((int) usage.getGenerationTokens());
+            report.setPromptTokens(usage.getPromptTokens() != null ? usage.getPromptTokens().intValue() : 0);
+            report.setCompletionTokens(usage.getGenerationTokens() != null ? usage.getGenerationTokens().intValue() : 0);
             report.setGenerationMs(generationMs);
             report.setStatus("COMPLETED");
             report.setGeneratedAt(Instant.now());

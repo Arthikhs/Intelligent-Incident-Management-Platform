@@ -52,6 +52,55 @@ spring:
           filters:
             - JwtAuthFilter
 
+        - id: anomaly-detection
+          uri: http://${ANOMALY_SERVICE_HOST:localhost}:8088
+          predicates:
+            - Path=/api/v1/anomalies/**
+          filters:
+            - JwtAuthFilter
+
+        - id: blast-radius
+          uri: http://${BLAST_SERVICE_HOST:localhost}:8087
+          predicates:
+            - Path=/api/v1/blast-radius/**
+          filters:
+            - JwtAuthFilter
+
+        - id: notifications
+          uri: http://${NOTIFICATION_SERVICE_HOST:localhost}:8094
+          predicates:
+            - Path=/api/v1/notifications/**
+          filters:
+            - JwtAuthFilter
+
+        - id: slo
+          uri: http://${SLO_SERVICE_HOST:localhost}:8096
+          predicates:
+            - Path=/api/v1/slos/**
+          filters:
+            - JwtAuthFilter
+
+        - id: postmortem
+          uri: http://${POSTMORTEM_SERVICE_HOST:localhost}:8097
+          predicates:
+            - Path=/api/v1/postmortems/**
+          filters:
+            - JwtAuthFilter
+
+        - id: knowledge-base
+          uri: http://${KB_SERVICE_HOST:localhost}:8095
+          predicates:
+            - Path=/api/v1/kb/**
+          filters:
+            - JwtAuthFilter
+
+        - id: ai-copilot
+          uri: http://${COPILOT_SERVICE_HOST:localhost}:8098
+          predicates:
+            - Path=/api/v1/copilot/**
+          filters:
+            - JwtAuthFilter
+
       globalcors:
         corsConfigurations:
           '[/**]':
